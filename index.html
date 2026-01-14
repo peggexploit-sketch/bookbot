@@ -3,18 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Library</title>
+    <title>Smart Book Search</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Популярное</h1>
-        <p>Лучшие книги недели</p>
+    <div class="search-container">
+        <h1>📚 Поиск книг</h1>
+        <div class="input-group">
+            <input type="text" id="searchInput" placeholder="Название или автор...">
+            <button onclick="searchBooks()">🔍</button>
+        </div>
     </div>
 
+    <div id="loader" class="loader" style="display: none;"></div>
     <div class="book-list" id="bookList">
+        <div class="empty-state">
+            Введите название книги, чтобы найти её описание и доступные форматы.
         </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

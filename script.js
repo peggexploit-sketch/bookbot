@@ -1,41 +1,69 @@
 let tg = window.Telegram.WebApp;
-tg.expand(); // Растянуть на весь экран
+tg.expand(); 
 
-// Список книг (для модерации - безобидная классика или популярное)
-const books = [
-    { id: 1, title: "Мастер и Маргарита", author: "Михаил Булгаков", icon: "🐈" },
-    { id: 2, title: "Атомные привычки", author: "Джеймс Клир", icon: "🧠" },
-    { id: 3, title: "Богатый папа, бедный папа", author: "Роберт Кийосаки", icon: "💰" },
-    { id: 4, title: "1984", author: "Джордж Оруэлл", icon: "👁️" },
-    { id: 5, title: "Шантарам", author: "Грегори Робертс", icon: "👳🏽‍♂️" }
-];
+const searchInput = document.getElementById('searchInput');
+const bookList = document.getElementById('bookList');
+const loader = document.getElementById('loader');
 
-const list = document.getElementById('bookList');
-
-// Создаем карточки книг
-books.forEach(book => {
-    const item = document.createElement('div');
-    item.className = 'book-card';
-    item.innerHTML = `
-        <div class="book-icon">${book.icon}</div>
-        <div class="book-info">
-            <div class="book-title">${book.title}</div>
-            <div class="book-author">${book.author}</div>
-        </div>
-        <button class="btn-read" onclick="selectBook(${book.id})">Читать</button>
-    `;
-    list.appendChild(item);
+// Поиск по нажатию Enter
+searchInput.addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    searchBooks();
+  }
 });
 
-// Функция отправки данных боту
-function selectBook(id) {
-    // Мы отправляем боту команду, что юзер хочет "скачать"
-    // Бот на сервере уже сам решит - дать APK или ссылку, в зависимости от режима
+async function searchBooks() {
+    const query = searchInput.value;
+    if (!query) return;
+
+    // Очистка и лоадер
+    bookList.innerHTML = '';
+    loader.style.display = 'block';
+
+    try {
+        // Запрос к Google Books API (БЕСПЛАТНО и ЛЕГАЛЬНО)
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=ru`);
+        const data = await response.json();
+
+        loader.style.display = 'none';
+
+        if (!data.items) {
+            bookList.innerHTML = '<div class="empty-state">Ничего не найдено 😔</div>';
+            return;
+        }
+
+        data.items.forEach(item => {
+            const info = item.volumeInfo;
+            // Заглушка, если нет картинки
+            const img = info.imageLinks?.thumbnail || 'https://via.placeholder.com/128x192.png?text=No+Cover';
+            const desc = info.description || 'Описание отсутствует';
+            const authors = info.authors ? info.authors.join(', ') : 'Неизвестный автор';
+
+            const card = document.createElement('div');
+            card.className = 'book-card';
+            card.innerHTML = `
+                <img src="${img}" class="book-cover">
+                <div class="book-info">
+                    <div class="book-title">${info.title}</div>
+                    <div class="book-author">${authors}</div>
+                    <div class="book-desc">${desc}</div>
+                    <button class="btn-read" onclick="selectBook('${info.title}')">📖 Читать</button>
+                </div>
+            `;
+            bookList.appendChild(card);
+        });
+
+    } catch (error) {
+        loader.style.display = 'none';
+        bookList.innerHTML = '<div class="empty-state">Ошибка сети. Попробуйте позже.</div>';
+    }
+}
+
+function selectBook(title) {
+    // Отправляем боту название книги, которую выбрал юзер
     const data = JSON.stringify({
         action: "download_apk",
-        book_id: id
+        book_title: title
     });
-    
-    tg.sendData(data); // Отправка в Телеграм
-    // tg.close(); // Можно закрыть окно, но лучше оставить
+    tg.sendData(data);
 }
