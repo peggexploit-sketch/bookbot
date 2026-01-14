@@ -5,6 +5,9 @@ const searchInput = document.getElementById('searchInput');
 const bookList = document.getElementById('bookList');
 const loader = document.getElementById('loader');
 
+// Глобальная переменная для хранения найденных книг
+let foundBooks = [];
+
 // Поиск по Enter
 searchInput.addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
@@ -30,17 +33,19 @@ async function searchBooks() {
             return;
         }
 
-        // Проверяем, что выбрал юзер (Радиокнопка)
+        // Сохраняем книги в глобальную переменную
+        foundBooks = data.items;
+
+        // Проверяем, какой тип выбран сейчас, чтобы нарисовать правильную кнопку
         const typeInputs = document.getElementsByName('book_type');
         let selectedType = "book";
         for (const input of typeInputs) {
             if (input.checked) selectedType = input.value;
         }
-        
-        // Меняем текст кнопки в зависимости от типа
         const btnText = selectedType === 'audio' ? '🎧 Слушать' : '📖 Читать';
 
-        data.items.forEach(item => {
+        // Генерируем список
+        foundBooks.forEach((item, index) => {
             const info = item.volumeInfo;
 
             let img = info.imageLinks?.thumbnail;
@@ -52,8 +57,8 @@ async function searchBooks() {
 
             const desc = info.description || 'Описание отсутствует';
             const authors = info.authors ? info.authors.join(', ') : 'Неизвестный автор';
-            const safeTitle = info.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-
+            
+            // ВАЖНО: В onclick мы теперь передаем просто INDEX (0, 1, 2...), а не текст
             const card = document.createElement('div');
             card.className = 'book-card';
             card.innerHTML = `
@@ -62,7 +67,7 @@ async function searchBooks() {
                     <div class="book-title">${info.title}</div>
                     <div class="book-author">${authors}</div>
                     <div class="book-desc">${desc}</div>
-                    <button class="btn-read" onclick="selectBook('${safeTitle}', '${selectedType}')">${btnText}</button>
+                    <button class="btn-read" onclick="handleBookClick(${index})">${btnText}</button>
                 </div>
             `;
             bookList.appendChild(card);
@@ -75,18 +80,29 @@ async function searchBooks() {
     }
 }
 
-function selectBook(title, type) {
-    // Отправляем боту и название, и тип (аудио или книга)
+// Новая функция обработки клика
+function handleBookClick(index) {
+    // 1. Берем книгу из памяти по индексу
+    const book = foundBooks[index];
+    if (!book) return;
+
+    // 2. Проверяем, какой режим (Аудио/Книга) выбран ПРЯМО СЕЙЧАС
+    const typeInputs = document.getElementsByName('book_type');
+    let selectedType = "book";
+    for (const input of typeInputs) {
+        if (input.checked) selectedType = input.value;
+    }
+
+    // 3. Отправляем боту
     const data = JSON.stringify({
         action: "download_apk",
-        book_title: title,
-        book_type: type
+        book_title: book.volumeInfo.title,
+        book_type: selectedType
     });
     tg.sendData(data);
 }
 
 function getInstruction() {
-    // Просим бота показать инструкцию
     const data = JSON.stringify({
         action: "instruction"
     });
