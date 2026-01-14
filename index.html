@@ -9,7 +9,22 @@
 </head>
 <body>
     <div class="search-container">
-        <h1>📚 Поиск книг</h1>
+        <div class="header-top">
+            <h1>📚 Библиотека</h1>
+            <button class="btn-instruction" onclick="getInstruction()">ℹ️ Инструкция</button>
+        </div>
+
+        <div class="search-type">
+            <label class="type-option">
+                <input type="radio" name="book_type" value="book" checked>
+                <span>📖 Читать</span>
+            </label>
+            <label class="type-option">
+                <input type="radio" name="book_type" value="audio">
+                <span>🎧 Слушать</span>
+            </label>
+        </div>
+
         <div class="input-group">
             <input type="text" id="searchInput" placeholder="Название или автор...">
             <button onclick="searchBooks()">🔍</button>
@@ -19,7 +34,7 @@
     <div id="loader" class="loader" style="display: none;"></div>
     <div class="book-list" id="bookList">
         <div class="empty-state">
-            Введите название книги, чтобы найти её описание и доступные форматы.
+            Введите название, чтобы найти электронную или аудиокнигу.
         </div>
     </div>
 

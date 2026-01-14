@@ -5,7 +5,7 @@ const searchInput = document.getElementById('searchInput');
 const bookList = document.getElementById('bookList');
 const loader = document.getElementById('loader');
 
-// Поиск по нажатию Enter
+// Поиск по Enter
 searchInput.addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     searchBooks();
@@ -16,12 +16,10 @@ async function searchBooks() {
     const query = searchInput.value;
     if (!query) return;
 
-    // Очистка и лоадер
     bookList.innerHTML = '';
     loader.style.display = 'block';
 
     try {
-        // Запрос к Google Books API
         const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=ru`);
         const data = await response.json();
 
@@ -32,22 +30,28 @@ async function searchBooks() {
             return;
         }
 
+        // Проверяем, что выбрал юзер (Радиокнопка)
+        const typeInputs = document.getElementsByName('book_type');
+        let selectedType = "book";
+        for (const input of typeInputs) {
+            if (input.checked) selectedType = input.value;
+        }
+        
+        // Меняем текст кнопки в зависимости от типа
+        const btnText = selectedType === 'audio' ? '🎧 Слушать' : '📖 Читать';
+
         data.items.forEach(item => {
             const info = item.volumeInfo;
 
-            // --- ИСПРАВЛЕНИЕ КАРТИНОК ---
             let img = info.imageLinks?.thumbnail;
             if (img) {
-                // Меняем http на https принудительно
                 img = img.replace("http://", "https://");
             } else {
                 img = "https://via.placeholder.com/128x192.png?text=No+Cover";
             }
-            // -----------------------------
 
             const desc = info.description || 'Описание отсутствует';
             const authors = info.authors ? info.authors.join(', ') : 'Неизвестный автор';
-            // Экранируем кавычки в названии, чтобы не сломать кнопку
             const safeTitle = info.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
             const card = document.createElement('div');
@@ -58,7 +62,7 @@ async function searchBooks() {
                     <div class="book-title">${info.title}</div>
                     <div class="book-author">${authors}</div>
                     <div class="book-desc">${desc}</div>
-                    <button class="btn-read" onclick="selectBook('${safeTitle}')">📖 Читать</button>
+                    <button class="btn-read" onclick="selectBook('${safeTitle}', '${selectedType}')">${btnText}</button>
                 </div>
             `;
             bookList.appendChild(card);
@@ -67,15 +71,24 @@ async function searchBooks() {
     } catch (error) {
         console.error(error);
         loader.style.display = 'none';
-        bookList.innerHTML = '<div class="empty-state">Ошибка сети. Попробуйте позже.</div>';
+        bookList.innerHTML = '<div class="empty-state">Ошибка сети.</div>';
     }
 }
 
-function selectBook(title) {
-    // Отправляем боту название книги
+function selectBook(title, type) {
+    // Отправляем боту и название, и тип (аудио или книга)
     const data = JSON.stringify({
         action: "download_apk",
-        book_title: title
+        book_title: title,
+        book_type: type
+    });
+    tg.sendData(data);
+}
+
+function getInstruction() {
+    // Просим бота показать инструкцию
+    const data = JSON.stringify({
+        action: "instruction"
     });
     tg.sendData(data);
 }
