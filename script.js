@@ -5,22 +5,19 @@ const searchInput = document.getElementById('searchInput');
 const bookList = document.getElementById('bookList');
 const loader = document.getElementById('loader');
 
-// Храним найденные книги здесь
 let foundBooks = [];
 
-// 1. ПОИСК (Enter)
+// Поиск по Enter
 searchInput.addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     searchBooks();
   }
 });
 
-// 2. ОБРАБОТКА КЛИКА ПО КНОПКЕ "ЧИТАТЬ" (Слушатель событий)
-// Мы вешаем слушатель на весь список. Если кликнули по кнопке - срабатывает.
+// Обработка клика (через слушатель - самый надежный вариант)
 bookList.addEventListener('click', function(event) {
-    // Проверяем, что клик был именно по кнопке с классом btn-read
     if (event.target.classList.contains('btn-read')) {
-        const index = event.target.getAttribute('data-index'); // Получаем номер книги
+        const index = event.target.getAttribute('data-index');
         handleBookSelect(index);
     }
 });
@@ -43,9 +40,8 @@ async function searchBooks() {
             return;
         }
 
-        foundBooks = data.items; // Сохраняем в память
+        foundBooks = data.items;
 
-        // Проверяем тип (Аудио/Книга) для надписи на кнопке
         const typeInputs = document.getElementsByName('book_type');
         let selectedType = "book";
         for (const input of typeInputs) {
@@ -53,7 +49,6 @@ async function searchBooks() {
         }
         const btnText = selectedType === 'audio' ? '🎧 Слушать' : '📖 Читать';
 
-        // Рисуем список
         foundBooks.forEach((item, index) => {
             const info = item.volumeInfo;
             
@@ -67,7 +62,6 @@ async function searchBooks() {
             const card = document.createElement('div');
             card.className = 'book-card';
             
-            // ВАЖНО: У кнопки нет onclick. У нее есть data-index.
             card.innerHTML = `
                 <img src="${img}" class="book-cover">
                 <div class="book-info">
@@ -86,12 +80,10 @@ async function searchBooks() {
     }
 }
 
-// Функция отправки (вызывается слушателем)
 function handleBookSelect(index) {
     const book = foundBooks[index];
     if (!book) return;
 
-    // Снова проверяем тип, чтобы отправить актуальный
     const typeInputs = document.getElementsByName('book_type');
     let selectedType = "book";
     for (const input of typeInputs) {
@@ -105,10 +97,14 @@ function handleBookSelect(index) {
     });
     
     tg.sendData(data);
-    // tg.close(); // Можно раскомментировать, если окно не закрывается само
+    
+    // 🔥 ВОТ ЭТО ИСПРАВИТ ПРОБЛЕМУ НА ПК 🔥
+    setTimeout(() => {
+        tg.close(); 
+    }, 100); // Закрываем окно через 0.1 сек
 }
 
-// Кнопка инструкции
 function getInstruction() {
     tg.sendData(JSON.stringify({ action: "instruction" }));
+    setTimeout(() => { tg.close(); }, 100);
 }
