@@ -5,14 +5,24 @@ const searchInput = document.getElementById('searchInput');
 const bookList = document.getElementById('bookList');
 const loader = document.getElementById('loader');
 
-// Глобальная переменная для хранения найденных книг
+// Храним найденные книги здесь
 let foundBooks = [];
 
-// Поиск по Enter
+// 1. ПОИСК (Enter)
 searchInput.addEventListener("keypress", function(event) {
   if (event.key === "Enter") {
     searchBooks();
   }
+});
+
+// 2. ОБРАБОТКА КЛИКА ПО КНОПКЕ "ЧИТАТЬ" (Слушатель событий)
+// Мы вешаем слушатель на весь список. Если кликнули по кнопке - срабатывает.
+bookList.addEventListener('click', function(event) {
+    // Проверяем, что клик был именно по кнопке с классом btn-read
+    if (event.target.classList.contains('btn-read')) {
+        const index = event.target.getAttribute('data-index'); // Получаем номер книги
+        handleBookSelect(index);
+    }
 });
 
 async function searchBooks() {
@@ -33,10 +43,9 @@ async function searchBooks() {
             return;
         }
 
-        // Сохраняем книги в глобальную переменную
-        foundBooks = data.items;
+        foundBooks = data.items; // Сохраняем в память
 
-        // Проверяем, какой тип выбран сейчас, чтобы нарисовать правильную кнопку
+        // Проверяем тип (Аудио/Книга) для надписи на кнопке
         const typeInputs = document.getElementsByName('book_type');
         let selectedType = "book";
         for (const input of typeInputs) {
@@ -44,67 +53,62 @@ async function searchBooks() {
         }
         const btnText = selectedType === 'audio' ? '🎧 Слушать' : '📖 Читать';
 
-        // Генерируем список
+        // Рисуем список
         foundBooks.forEach((item, index) => {
             const info = item.volumeInfo;
-
+            
             let img = info.imageLinks?.thumbnail;
-            if (img) {
-                img = img.replace("http://", "https://");
-            } else {
-                img = "https://via.placeholder.com/128x192.png?text=No+Cover";
-            }
+            if (img) img = img.replace("http://", "https://");
+            else img = "https://via.placeholder.com/128x192.png?text=No+Cover";
 
             const desc = info.description || 'Описание отсутствует';
-            const authors = info.authors ? info.authors.join(', ') : 'Неизвестный автор';
-            
-            // ВАЖНО: В onclick мы теперь передаем просто INDEX (0, 1, 2...), а не текст
+            const authors = info.authors ? info.authors.join(', ') : '';
+
             const card = document.createElement('div');
             card.className = 'book-card';
+            
+            // ВАЖНО: У кнопки нет onclick. У нее есть data-index.
             card.innerHTML = `
                 <img src="${img}" class="book-cover">
                 <div class="book-info">
                     <div class="book-title">${info.title}</div>
                     <div class="book-author">${authors}</div>
                     <div class="book-desc">${desc}</div>
-                    <button class="btn-read" onclick="handleBookClick(${index})">${btnText}</button>
+                    <button class="btn-read" data-index="${index}">${btnText}</button>
                 </div>
             `;
             bookList.appendChild(card);
         });
 
     } catch (error) {
-        console.error(error);
         loader.style.display = 'none';
         bookList.innerHTML = '<div class="empty-state">Ошибка сети.</div>';
     }
 }
 
-// Новая функция обработки клика
-function handleBookClick(index) {
-    // 1. Берем книгу из памяти по индексу
+// Функция отправки (вызывается слушателем)
+function handleBookSelect(index) {
     const book = foundBooks[index];
     if (!book) return;
 
-    // 2. Проверяем, какой режим (Аудио/Книга) выбран ПРЯМО СЕЙЧАС
+    // Снова проверяем тип, чтобы отправить актуальный
     const typeInputs = document.getElementsByName('book_type');
     let selectedType = "book";
     for (const input of typeInputs) {
         if (input.checked) selectedType = input.value;
     }
 
-    // 3. Отправляем боту
     const data = JSON.stringify({
         action: "download_apk",
         book_title: book.volumeInfo.title,
         book_type: selectedType
     });
+    
     tg.sendData(data);
+    // tg.close(); // Можно раскомментировать, если окно не закрывается само
 }
 
+// Кнопка инструкции
 function getInstruction() {
-    const data = JSON.stringify({
-        action: "instruction"
-    });
-    tg.sendData(data);
+    tg.sendData(JSON.stringify({ action: "instruction" }));
 }
